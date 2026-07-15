@@ -177,7 +177,6 @@ def create(
     subscribe: Optional[List[str]] = typer.Option(
         None, "--subscribe", help="Add subscriber (username or @me, repeatable)"
     ),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Preview without creating"),
 ) -> None:
     """Create a new paste.
 
@@ -189,6 +188,7 @@ def create(
         phabfive paste create "Code" --language=python  # opens $EDITOR
         phabfive paste create "Notes" --subscribe=@me --tag=project
     """
+    dry_run = ctx.obj["dry_run"]
     paste = _get_paste_app()
 
     # Merge positional and option title (positional takes precedence)
@@ -525,9 +525,6 @@ def edit(
     subscribe: Optional[List[str]] = typer.Option(
         None, "--subscribe", help="Add subscriber (username or @me, repeatable)"
     ),
-    dry_run: bool = typer.Option(
-        False, "--dry-run", help="Preview changes without applying"
-    ),
     force: bool = typer.Option(
         False, "--force", help="Apply changes without confirmation"
     ),
@@ -546,6 +543,7 @@ def edit(
     """
     from phabfive.editor import confirm_text_change, edit_text
 
+    dry_run = ctx.obj["dry_run"]
     _setup_output_options(ctx)
     paste = _get_paste_app()
 

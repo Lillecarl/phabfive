@@ -199,6 +199,18 @@ def main(
         is_eager=True,
         help="Display the version number and exit",
     ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        envvar="PHABFIVE_DRY_RUN",
+        help="Preview changes without applying them",
+    ),
+    no_dry_run: bool = typer.Option(
+        False,
+        "--no-dry-run",
+        "--execute",
+        help="Execute changes (overrides PHABFIVE_DRY_RUN)",
+    ),
 ) -> None:
     """CLI for Phabricator and Phorge - built for humans and AI agents."""
     # Store global options in context for subcommands to access
@@ -208,6 +220,8 @@ def main(
     ctx.obj["format"] = output_format.value if output_format else None
     ctx.obj["ascii"] = ascii_when.value
     ctx.obj["hyperlink"] = hyperlink_when.value
+
+    ctx.obj["dry_run"] = dry_run and not no_dry_run
 
 
 app.add_typer(passphrase_app, name="passphrase")

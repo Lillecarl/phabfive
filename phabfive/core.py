@@ -44,6 +44,7 @@ class Phabfive:
     _hyperlink_when = "auto"
     _output_format = "rich"
     _fallback_format = "yaml"  # Format used when stdout is not a TTY
+    _dry_run = False
     # Maximum line width for rich format (to prevent YAML breaking)
     MAX_LINE_WIDTH = 4096
 
@@ -269,6 +270,7 @@ class Phabfive:
 
         # Set fallback format from config (used when stdout is not a TTY)
         Phabfive._fallback_format = self.conf.get("PHAB_FALLBACK", "yaml")
+        Phabfive._dry_run = self.conf.get("PHABFIVE_DRY_RUN", False)
 
         self.phab = Phabricator(
             host=self._normalize_url(self.conf.get("PHAB_URL")),

@@ -230,9 +230,6 @@ def create(
         "--subscribe",
         help="Add subscriber (username or @me, repeatable)",
     ),
-    dry_run: bool = typer.Option(
-        False, "--dry-run", help="Preview without creating task"
-    ),
     force: bool = typer.Option(
         False,
         "--force",
@@ -249,6 +246,7 @@ def create(
         phabfive maniphest create "Task" --tag=Board --column=Backlog
         echo "Description" | phabfive maniphest create "Task" --description=-
     """
+    dry_run = ctx.obj["dry_run"]
     maniphest = _get_maniphest_app()
 
     # Merge positional and option title (positional takes precedence)
@@ -685,11 +683,6 @@ def edit(
         "--comment",
         help="Add comment with changes",
     ),
-    dry_run: bool = typer.Option(
-        False,
-        "--dry-run",
-        help="Show changes without applying them",
-    ),
     force: bool = typer.Option(
         False,
         "--force",
@@ -712,6 +705,9 @@ def edit(
     # comma-separated lists of them) are task IDs; the first non-matching
     # arg is the new title. A title that looks like a monogram must be set
     # via the hidden --title option.
+    dry_run = ctx.obj["dry_run"]
+
+    # Validate monogram format (T followed by digits)
     maniphest_pattern = f"^{MONOGRAMS['maniphest']}$"
     task_parts: List[str] = []
     positional_title: Optional[str] = None

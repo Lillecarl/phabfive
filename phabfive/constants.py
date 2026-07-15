@@ -106,6 +106,7 @@ REPO_STATUS_CHOICES = ["active", "inactive"]
 
 CONFIGURABLES = [
     "PHABFIVE_DEBUG",
+    "PHABFIVE_DRY_RUN",
     "PHAB_TOKEN",
     "PHAB_URL",
     "PHAB_SPACE",
@@ -113,6 +114,7 @@ CONFIGURABLES = [
 ]
 DEFAULTS = {
     "PHABFIVE_DEBUG": False,
+    "PHABFIVE_DRY_RUN": False,
     "PHAB_TOKEN": "",
     "PHAB_URL": "",
     "PHAB_SPACE": "S1",

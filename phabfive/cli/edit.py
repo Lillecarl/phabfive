@@ -36,6 +36,7 @@ def _get_edit_app():
 
 
 def edit_command(
+    ctx: typer.Context,
     object_id: Optional[str] = typer.Argument(
         None,
         help="Object monogram(s) to edit (e.g., T123 or T123,T124,T125). Routes to app-specific edit command. If omitted, reads YAML from stdin.",
@@ -84,11 +85,6 @@ def edit_command(
         "--comment",
         help="Add comment with changes",
     ),
-    dry_run: bool = typer.Option(
-        False,
-        "--dry-run",
-        help="Show changes without applying them",
-    ),
     force: bool = typer.Option(
         False,
         "--force",
@@ -109,6 +105,7 @@ def edit_command(
         phabfive maniphest search --tag "Backend" | phabfive edit --column=Done
         phabfive edit T123 --tag="Sprint" --column=forward --comment="Moving forward"
     """
+    dry_run = ctx.obj["dry_run"]
     edit_handler = _get_edit_app()
 
     retcode = edit_handler.edit_objects(
