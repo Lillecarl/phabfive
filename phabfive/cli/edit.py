@@ -89,6 +89,16 @@ def edit_command(
         "--dry-run",
         help="Show changes without applying them",
     ),
+    parents: Optional[str] = typer.Option(
+        None,
+        "--parents",
+        help="Set parent tasks (comma-separated monograms, e.g., T456,T789)",
+    ),
+    depends_on: Optional[str] = typer.Option(
+        None,
+        "--depends-on",
+        help="Set subtasks (comma-separated monograms, e.g., T456,T789)",
+    ),
     force: bool = typer.Option(
         False,
         "--force",
@@ -108,8 +118,20 @@ def edit_command(
         phabfive edit T123 --priority=raise --status=resolved
         phabfive maniphest search --tag "Backend" | phabfive edit --column=Done
         phabfive edit T123 --tag="Sprint" --column=forward --comment="Moving forward"
+        phabfive edit T123 --parents=T456,T789
+        phabfive edit T123 --depends-on=T456,T789
     """
     edit_handler = _get_edit_app()
+
+    # Parse parents list
+    parent_list = None
+    if parents:
+        parent_list = [p.strip() for p in parents.split(",") if p.strip()]
+
+    # Parse depends-on list
+    depends_on_list = None
+    if depends_on:
+        depends_on_list = [p.strip() for p in depends_on.split(",") if p.strip()]
 
     retcode = edit_handler.edit_objects(
         object_id=object_id,
@@ -121,6 +143,8 @@ def edit_command(
         description=description,
         subscribe=subscribe,
         comment=comment,
+        parents=parent_list,
+        depends_on=depends_on_list,
         dry_run=dry_run,
         force=force,
     )

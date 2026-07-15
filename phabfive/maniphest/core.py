@@ -1658,6 +1658,8 @@ class Maniphest(Phabfive):
         subscribers=None,
         column=None,
         board_phid=None,
+        parents=None,
+        depends_on=None,
         dry_run=False,
     ):
         """
@@ -1683,6 +1685,10 @@ class Maniphest(Phabfive):
             Column name on board for initial placement
         board_phid : str, optional
             Board PHID for column placement (required if column is specified)
+        parents : list, optional
+            Parent task monograms to set (e.g., ["T456", "T789"])
+        depends_on : list, optional
+            Subtask monograms to set (e.g., ["T456", "T789"])
         dry_run : bool
             If True, validate and display without creating
 
@@ -1779,6 +1785,34 @@ class Maniphest(Phabfive):
         else:
             subscriber_display = parsed_subscribers
 
+        # Resolve parent tasks to PHIDs
+        if parents:
+            parent_phids = []
+            for ticket_id in parents:
+                search_result = self.phab.maniphest.search(
+                    constraints={"ids": [int(ticket_id[1:])]},
+                )
+                if len(search_result["data"]) != 1:
+                    raise PhabfiveConfigException(
+                        f"Unable to find parent ticket {ticket_id}"
+                    )
+                parent_phids.append(search_result["data"][0]["phid"])
+            transactions.append({"type": "parents.set", "value": parent_phids})
+
+        # Resolve subtask (depends-on) tasks to PHIDs
+        if depends_on:
+            subtask_phids = []
+            for ticket_id in depends_on:
+                search_result = self.phab.maniphest.search(
+                    constraints={"ids": [int(ticket_id[1:])]},
+                )
+                if len(search_result["data"]) != 1:
+                    raise PhabfiveConfigException(
+                        f"Unable to find subtask ticket {ticket_id}"
+                    )
+                subtask_phids.append(search_result["data"][0]["phid"])
+            transactions.append({"type": "subtasks.set", "value": subtask_phids})
+
         # Dry run - return what would be created
         if dry_run:
             log.info("Dry run mode - task would be created with these transactions:")
@@ -1869,6 +1903,8 @@ class Maniphest(Phabfive):
         description=None,
         subscribe=None,
         comment=None,
+        parents=None,
+        depends_on=None,
         dry_run=False,
     ):
         """Edit a task by ID.
@@ -1895,6 +1931,10 @@ class Maniphest(Phabfive):
             Usernames to add as subscribers (@me for current user)
         comment : str, optional
             Comment to add
+        parents : list, optional
+            Parent task monograms to set (e.g., ["T456", "T789"])
+        depends_on : list, optional
+            Subtask monograms to set (e.g., ["T456", "T789"])
         dry_run : bool
             Show changes without applying
 
@@ -2136,6 +2176,48 @@ class Maniphest(Phabfive):
                         "new": f"Added: {', '.join(subscriber_names)}",
                     }
                 )
+
+        # Handle parents
+        if parents:
+            parent_phids = []
+            parent_labels = []
+            for ticket_id in parents:
+                search_result = self.phab.maniphest.search(
+                    constraints={"ids": [int(ticket_id[1:])]},
+                )
+                if len(search_result["data"]) != 1:
+                    raise ValueError(f"Unable to find parent ticket {ticket_id}")
+                parent_phids.append(search_result["data"][0]["phid"])
+                parent_labels.append(ticket_id)
+            transactions.append({"type": "parents.set", "value": parent_phids})
+            changes.append(
+                {
+                    "field": "Parents",
+                    "old": None,
+                    "new": f"Set: {', '.join(parent_labels)}",
+                }
+            )
+
+        # Handle depends-on (subtasks)
+        if depends_on:
+            subtask_phids = []
+            subtask_labels = []
+            for ticket_id in depends_on:
+                search_result = self.phab.maniphest.search(
+                    constraints={"ids": [int(ticket_id[1:])]},
+                )
+                if len(search_result["data"]) != 1:
+                    raise ValueError(f"Unable to find subtask ticket {ticket_id}")
+                subtask_phids.append(search_result["data"][0]["phid"])
+                subtask_labels.append(ticket_id)
+            transactions.append({"type": "subtasks.set", "value": subtask_phids})
+            changes.append(
+                {
+                    "field": "Depends On",
+                    "old": None,
+                    "new": f"Set: {', '.join(subtask_labels)}",
+                }
+            )
 
         if not transactions:
             log.info(f"No changes to apply for T{task_id}")

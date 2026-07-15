@@ -749,3 +749,375 @@ class TestEditExpansion:
 
         result = preprocess_monograms(["phabfive", "edit", "P123"])
         assert result == ["phabfive", "paste", "edit", "P123"]
+
+
+class TestParentsAndDependsOnSupport:
+    """Tests for --parents and --depends-on in edit_task_by_id and create_task."""
+
+    MOCK_TASK_DATA = {
+        "fields": {
+            "priority": {"value": 50, "name": "Normal"},
+            "status": {"value": "open", "name": "Open"},
+            "name": "Test Task",
+            "description": {"raw": ""},
+            "ownerPHID": None,
+        },
+        "attachments": {
+            "projects": {"projectPHIDs": []},
+            "columns": {"boards": {}},
+            "subscribers": {"subscriberPHIDs": []},
+        },
+        "phid": "PHID-TASK-123",
+    }
+
+    # --- edit_task_by_id tests ---
+
+    def test_edit_task_by_id_with_parents(self):
+        from phabfive.maniphest import Maniphest
+
+        m = Maniphest()
+
+        m.phab.maniphest.search.side_effect = [
+            {"data": [self.MOCK_TASK_DATA]},
+            {"data": [{"phid": "PHID-TASK-456"}]},
+        ]
+
+        result = m.edit_task_by_id("123", parents=["T456"])
+
+        assert m.phab.maniphest.edit.called
+        transactions = m.phab.maniphest.edit.call_args[1]["transactions"]
+        assert any(
+            t["type"] == "parents.set" and t["value"] == ["PHID-TASK-456"]
+            for t in transactions
+        )
+        assert any(c["field"] == "Parents" for c in result["changes"])
+
+    def test_edit_task_by_id_with_parents_dry_run(self):
+        from phabfive.maniphest import Maniphest
+
+        m = Maniphest()
+
+        m.phab.maniphest.search.side_effect = [
+            {"data": [self.MOCK_TASK_DATA]},
+            {"data": [{"phid": "PHID-TASK-456"}]},
+        ]
+
+        result = m.edit_task_by_id("123", parents=["T456"], dry_run=True)
+
+        assert not m.phab.maniphest.edit.called
+        assert result["dry_run"] is True
+        assert any(
+            c["field"] == "Parents" and "T456" in c["new"] for c in result["changes"]
+        )
+
+    def test_edit_task_by_id_with_multiple_parents(self):
+        from phabfive.maniphest import Maniphest
+
+        m = Maniphest()
+
+        m.phab.maniphest.search.side_effect = [
+            {"data": [self.MOCK_TASK_DATA]},
+            {"data": [{"phid": "PHID-TASK-456"}]},
+            {"data": [{"phid": "PHID-TASK-789"}]},
+        ]
+
+        m.edit_task_by_id("123", parents=["T456", "T789"])
+
+        assert m.phab.maniphest.edit.called
+        transactions = m.phab.maniphest.edit.call_args[1]["transactions"]
+        parents_txn = [t for t in transactions if t["type"] == "parents.set"]
+        assert len(parents_txn) == 1
+        assert set(parents_txn[0]["value"]) == {"PHID-TASK-456", "PHID-TASK-789"}
+
+    def test_edit_task_by_id_with_invalid_parent_raises_error(self):
+        from phabfive.maniphest import Maniphest
+
+        m = Maniphest()
+
+        m.phab.maniphest.search.side_effect = [
+            {"data": [self.MOCK_TASK_DATA]},
+            {"data": []},
+        ]
+
+        with pytest.raises(ValueError, match="Unable to find parent ticket"):
+            m.edit_task_by_id("123", parents=["T999"])
+
+    def test_edit_task_by_id_parents_none_no_extra_search(self):
+        from phabfive.maniphest import Maniphest
+
+        m = Maniphest()
+
+        m.phab.maniphest.search.side_effect = [
+            {"data": [self.MOCK_TASK_DATA]},
+        ]
+
+        result = m.edit_task_by_id("123")
+        assert len(result["changes"]) == 0
+        assert m.phab.maniphest.search.call_count == 1
+
+    def test_edit_task_by_id_parents_with_title_change(self):
+        from phabfive.maniphest import Maniphest
+
+        m = Maniphest()
+
+        m.phab.maniphest.search.side_effect = [
+            {"data": [self.MOCK_TASK_DATA]},
+            {"data": [{"phid": "PHID-TASK-456"}]},
+        ]
+
+        m.edit_task_by_id("123", title="New Title", parents=["T456"])
+
+        assert m.phab.maniphest.edit.called
+        transactions = m.phab.maniphest.edit.call_args[1]["transactions"]
+        assert any(
+            t["type"] == "title" and t["value"] == "New Title" for t in transactions
+        )
+        assert any(t["type"] == "parents.set" for t in transactions)
+
+    # --- create_task tests ---
+
+    def test_create_task_with_parents(self):
+        from phabfive.maniphest import Maniphest
+
+        m = Maniphest()
+
+        m.phab.maniphest.search.return_value = {"data": [{"phid": "PHID-TASK-456"}]}
+        m.phab.maniphest.edit.return_value = {
+            "object": {"phid": "PHID-TASK-NEW", "id": 999},
+        }
+        m.phab.maniphest.info.return_value = {
+            "uri": "https://phabricator.example.com/T999",
+        }
+
+        result = m.create_task("Test title", parents=["T456"])
+
+        assert m.phab.maniphest.edit.called
+        transactions = m.phab.maniphest.edit.call_args[1]["transactions"]
+        assert any(
+            t["type"] == "parents.set" and t["value"] == ["PHID-TASK-456"]
+            for t in transactions
+        )
+        assert result["id"] == 999
+
+    def test_create_task_with_parents_dry_run(self):
+        from phabfive.maniphest import Maniphest
+
+        m = Maniphest()
+
+        m.phab.maniphest.search.return_value = {"data": [{"phid": "PHID-TASK-456"}]}
+
+        result = m.create_task("Test title", parents=["T456"], dry_run=True)
+
+        assert not m.phab.maniphest.edit.called
+        assert result["dry_run"] is True
+
+    def test_create_task_with_multiple_parents(self):
+        from phabfive.maniphest import Maniphest
+
+        m = Maniphest()
+
+        m.phab.maniphest.search.side_effect = [
+            {"data": [{"phid": "PHID-TASK-456"}]},
+            {"data": [{"phid": "PHID-TASK-789"}]},
+        ]
+        m.phab.maniphest.edit.return_value = {
+            "object": {"phid": "PHID-TASK-NEW", "id": 999},
+        }
+        m.phab.maniphest.info.return_value = {
+            "uri": "https://phabricator.example.com/T999",
+        }
+
+        m.create_task("Test title", parents=["T456", "T789"])
+
+        assert m.phab.maniphest.edit.called
+        transactions = m.phab.maniphest.edit.call_args[1]["transactions"]
+        parents_txn = [t for t in transactions if t["type"] == "parents.set"]
+        assert len(parents_txn) == 1
+        assert set(parents_txn[0]["value"]) == {"PHID-TASK-456", "PHID-TASK-789"}
+
+    def test_create_task_with_invalid_parent_raises_error(self):
+        from phabfive.exceptions import PhabfiveConfigException
+        from phabfive.maniphest import Maniphest
+
+        m = Maniphest()
+
+        m.phab.maniphest.search.return_value = {"data": []}
+
+        with pytest.raises(
+            PhabfiveConfigException, match="Unable to find parent ticket"
+        ):
+            m.create_task("Test title", parents=["T999"])
+
+    def test_create_task_parents_none_no_extra_search(self):
+        from phabfive.maniphest import Maniphest
+
+        m = Maniphest()
+        m.phab.maniphest.edit.return_value = {
+            "object": {"phid": "PHID-TASK-1", "id": 1},
+        }
+        m.phab.maniphest.info.return_value = {
+            "uri": "https://phabricator.example.com/T1",
+        }
+
+        m.create_task("Test title")
+        assert m.phab.maniphest.edit.called
+        assert m.phab.maniphest.search.call_count == 0
+
+    # --- depends_on (subtasks) tests for edit_task_by_id ---
+
+    def test_edit_task_by_id_with_depends_on(self):
+        from phabfive.maniphest import Maniphest
+
+        m = Maniphest()
+
+        m.phab.maniphest.search.side_effect = [
+            {"data": [self.MOCK_TASK_DATA]},
+            {"data": [{"phid": "PHID-TASK-456"}]},
+        ]
+
+        result = m.edit_task_by_id("123", depends_on=["T456"])
+
+        assert m.phab.maniphest.edit.called
+        transactions = m.phab.maniphest.edit.call_args[1]["transactions"]
+        assert any(
+            t["type"] == "subtasks.set" and t["value"] == ["PHID-TASK-456"]
+            for t in transactions
+        )
+        assert any(c["field"] == "Depends On" for c in result["changes"])
+
+    def test_edit_task_by_id_with_depends_on_dry_run(self):
+        from phabfive.maniphest import Maniphest
+
+        m = Maniphest()
+
+        m.phab.maniphest.search.side_effect = [
+            {"data": [self.MOCK_TASK_DATA]},
+            {"data": [{"phid": "PHID-TASK-456"}]},
+        ]
+
+        result = m.edit_task_by_id("123", depends_on=["T456"], dry_run=True)
+
+        assert not m.phab.maniphest.edit.called
+        assert result["dry_run"] is True
+        assert any(
+            c["field"] == "Depends On" and "T456" in c["new"] for c in result["changes"]
+        )
+
+    def test_edit_task_by_id_with_multiple_depends_on(self):
+        from phabfive.maniphest import Maniphest
+
+        m = Maniphest()
+
+        m.phab.maniphest.search.side_effect = [
+            {"data": [self.MOCK_TASK_DATA]},
+            {"data": [{"phid": "PHID-TASK-456"}]},
+            {"data": [{"phid": "PHID-TASK-789"}]},
+        ]
+
+        m.edit_task_by_id("123", depends_on=["T456", "T789"])
+
+        assert m.phab.maniphest.edit.called
+        transactions = m.phab.maniphest.edit.call_args[1]["transactions"]
+        subtask_txn = [t for t in transactions if t["type"] == "subtasks.set"]
+        assert len(subtask_txn) == 1
+        assert set(subtask_txn[0]["value"]) == {"PHID-TASK-456", "PHID-TASK-789"}
+
+    def test_edit_task_by_id_with_invalid_depends_on_raises_error(self):
+        from phabfive.maniphest import Maniphest
+
+        m = Maniphest()
+
+        m.phab.maniphest.search.side_effect = [
+            {"data": [self.MOCK_TASK_DATA]},
+            {"data": []},
+        ]
+
+        with pytest.raises(ValueError, match="Unable to find subtask ticket"):
+            m.edit_task_by_id("123", depends_on=["T999"])
+
+    def test_edit_task_by_id_depends_on_none_no_extra_search(self):
+        from phabfive.maniphest import Maniphest
+
+        m = Maniphest()
+
+        m.phab.maniphest.search.side_effect = [
+            {"data": [self.MOCK_TASK_DATA]},
+        ]
+
+        result = m.edit_task_by_id("123")
+        assert len(result["changes"]) == 0
+        assert m.phab.maniphest.search.call_count == 1
+
+    # --- depends_on (subtasks) tests for create_task ---
+
+    def test_create_task_with_depends_on(self):
+        from phabfive.maniphest import Maniphest
+
+        m = Maniphest()
+
+        m.phab.maniphest.search.return_value = {"data": [{"phid": "PHID-TASK-456"}]}
+        m.phab.maniphest.edit.return_value = {
+            "object": {"phid": "PHID-TASK-NEW", "id": 999},
+        }
+        m.phab.maniphest.info.return_value = {
+            "uri": "https://phabricator.example.com/T999",
+        }
+
+        result = m.create_task("Test title", depends_on=["T456"])
+
+        assert m.phab.maniphest.edit.called
+        transactions = m.phab.maniphest.edit.call_args[1]["transactions"]
+        assert any(
+            t["type"] == "subtasks.set" and t["value"] == ["PHID-TASK-456"]
+            for t in transactions
+        )
+        assert result["id"] == 999
+
+    def test_create_task_with_depends_on_dry_run(self):
+        from phabfive.maniphest import Maniphest
+
+        m = Maniphest()
+
+        m.phab.maniphest.search.return_value = {"data": [{"phid": "PHID-TASK-456"}]}
+
+        result = m.create_task("Test title", depends_on=["T456"], dry_run=True)
+
+        assert not m.phab.maniphest.edit.called
+        assert result["dry_run"] is True
+
+    def test_create_task_with_multiple_depends_on(self):
+        from phabfive.maniphest import Maniphest
+
+        m = Maniphest()
+
+        m.phab.maniphest.search.side_effect = [
+            {"data": [{"phid": "PHID-TASK-456"}]},
+            {"data": [{"phid": "PHID-TASK-789"}]},
+        ]
+        m.phab.maniphest.edit.return_value = {
+            "object": {"phid": "PHID-TASK-NEW", "id": 999},
+        }
+        m.phab.maniphest.info.return_value = {
+            "uri": "https://phabricator.example.com/T999",
+        }
+
+        m.create_task("Test title", depends_on=["T456", "T789"])
+
+        assert m.phab.maniphest.edit.called
+        transactions = m.phab.maniphest.edit.call_args[1]["transactions"]
+        subtask_txn = [t for t in transactions if t["type"] == "subtasks.set"]
+        assert len(subtask_txn) == 1
+        assert set(subtask_txn[0]["value"]) == {"PHID-TASK-456", "PHID-TASK-789"}
+
+    def test_create_task_with_invalid_depends_on_raises_error(self):
+        from phabfive.exceptions import PhabfiveConfigException
+        from phabfive.maniphest import Maniphest
+
+        m = Maniphest()
+
+        m.phab.maniphest.search.return_value = {"data": []}
+
+        with pytest.raises(
+            PhabfiveConfigException, match="Unable to find subtask ticket"
+        ):
+            m.create_task("Test title", depends_on=["T999"])

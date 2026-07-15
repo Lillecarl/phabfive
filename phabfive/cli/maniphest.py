@@ -233,6 +233,16 @@ def create(
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Preview without creating task"
     ),
+    parents: Optional[str] = typer.Option(
+        None,
+        "--parents",
+        help="Set parent tasks (comma-separated monograms, e.g., T456,T789)",
+    ),
+    depends_on: Optional[str] = typer.Option(
+        None,
+        "--depends-on",
+        help="Set subtasks (comma-separated monograms, e.g., T456,T789)",
+    ),
     force: bool = typer.Option(
         False,
         "--force",
@@ -247,6 +257,8 @@ def create(
         phabfive maniphest create "New feature" --assign=@me
         phabfive maniphest create "Task" --priority=high --tag=Sprint
         phabfive maniphest create "Task" --tag=Board --column=Backlog
+        phabfive maniphest create "Subtask" --parents=T456
+        phabfive maniphest create "Task" --depends-on=T456,T789
         echo "Description" | phabfive maniphest create "Task" --description=-
     """
     maniphest = _get_maniphest_app()
@@ -302,6 +314,16 @@ def create(
                 sys.stderr.write(f"Error: Board not found: {tag[0]}\n")
                 raise typer.Exit(1)
 
+        # Parse parents list
+        parent_list = None
+        if parents:
+            parent_list = [p.strip() for p in parents.split(",") if p.strip()]
+
+        # Parse depends-on list
+        depends_on_list = None
+        if depends_on:
+            depends_on_list = [p.strip() for p in depends_on.split(",") if p.strip()]
+
         result = maniphest.create_task(
             title=final_title,
             description=final_description,
@@ -312,6 +334,8 @@ def create(
             subscribers=subscribe,
             column=column,
             board_phid=board_phid,
+            parents=parent_list,
+            depends_on=depends_on_list,
             dry_run=dry_run,
         )
         if result:
@@ -690,6 +714,16 @@ def edit(
         "--dry-run",
         help="Show changes without applying them",
     ),
+    parents: Optional[str] = typer.Option(
+        None,
+        "--parents",
+        help="Set parent tasks (comma-separated monograms, e.g., T456,T789)",
+    ),
+    depends_on: Optional[str] = typer.Option(
+        None,
+        "--depends-on",
+        help="Set subtasks (comma-separated monograms, e.g., T456,T789)",
+    ),
     force: bool = typer.Option(
         False,
         "--force",
@@ -707,6 +741,8 @@ def edit(
         phabfive maniphest edit T123,T124 --status=resolved
         phabfive maniphest edit T123 T124 "New Title"
         phabfive maniphest edit T123 --tag="Sprint" --column=forward
+        phabfive maniphest edit T123 --parents=T456,T789
+        phabfive maniphest edit T123 --depends-on=T456,T789
     """
     # Greedy monogram parsing: leading args that are task monograms (or
     # comma-separated lists of them) are task IDs; the first non-matching
@@ -742,6 +778,16 @@ def edit(
     # Delegate to Edit class for processing
     edit_handler = _get_edit_app()
 
+    # Parse parents list
+    parent_list = None
+    if parents:
+        parent_list = [p.strip() for p in parents.split(",") if p.strip()]
+
+    # Parse depends-on list
+    depends_on_list = None
+    if depends_on:
+        depends_on_list = [p.strip() for p in depends_on.split(",") if p.strip()]
+
     retcode = edit_handler.edit_objects(
         object_id=task_ids,
         title=final_title,
@@ -753,6 +799,8 @@ def edit(
         description=description,
         subscribe=subscribe,
         comment=comment_text,
+        parents=parent_list,
+        depends_on=depends_on_list,
         dry_run=dry_run,
         force=force,
     )
