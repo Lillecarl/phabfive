@@ -27,6 +27,8 @@ def edit_tasks_batch(
     description=None,
     subscribe=None,
     comment=None,
+    parents=None,
+    depends_on=None,
     dry_run=False,
 ):
     """Edit multiple tasks in batch (atomic validation).
@@ -43,6 +45,8 @@ def edit_tasks_batch(
         description (str): Description text to set
         subscribe (list): Usernames to add as subscribers
         comment (str): Comment to add
+        parents (list): Parent task monograms to set (e.g., ["T456", "T789"])
+        depends_on (list): Subtask monograms to set (e.g., ["T456", "T789"])
         dry_run (bool): Show changes without applying
 
     Returns:
@@ -118,6 +122,8 @@ def edit_tasks_batch(
                 description=description,
                 subscribe=subscribe,
                 comment=comment,
+                parents=parents,
+                depends_on=depends_on,
                 dry_run=dry_run,
             )
             success_count += 1
