@@ -39,6 +39,7 @@ from typing import Any, List, Optional
 import typer
 
 from phabfive.cli.completers import complete_spec_file
+from phabfive.cli.dry_run import resolve_dry_run
 from phabfive.cli.output import _get_output_format, _setup_output_options
 from phabfive.cli.spec_flags import dispatch_kind, load_of_kind
 from phabfive.cli.spec_report import (
@@ -300,6 +301,8 @@ def apply_command(
         phabfive apply -f specs/create/sprint-tasks.yaml --set sprint=42
         phabfive --format=json apply -f specs/create/sprint-tasks.yaml
     """
+    dry_run = resolve_dry_run(ctx, dry_run)
+
     _setup_output_options(ctx)
     output_format = _get_output_format(ctx)
     machine = is_machine_format(output_format)

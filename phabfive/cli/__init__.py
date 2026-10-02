@@ -62,6 +62,9 @@ _VALUELESS_GLOBAL_FLAGS = {
     "--show-completion",
     "--skill",
     "--profile",
+    "--dry-run",
+    "--no-dry-run",
+    "--execute",
 }
 
 # -v and -q are counted rather than valued, so -v, -vv, -q, -qq take no value
@@ -314,6 +317,13 @@ def main(
             "to open with 'phabfive profile'."
         ),
     ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run/--no-dry-run",
+        " /--execute",
+        envvar="PHAB_DRY_RUN",
+        help="Preview every write without applying it. --execute applies, overriding PHAB_DRY_RUN.",
+    ),
 ) -> None:
     """CLI for Phabricator and Phorge - built for humans and AI agents."""
     # --profile is declared for --help and parsing only: cli_entrypoint reads
@@ -329,6 +339,7 @@ def main(
     ctx.obj["format"] = output_format.value if output_format else None
     ctx.obj["ascii"] = ascii_when.value
     ctx.obj["hyperlink"] = hyperlink_when.value
+    ctx.obj["dry_run"] = dry_run
 
     # Global options but no command: show what the commands are
     if ctx.invoked_subcommand is None:

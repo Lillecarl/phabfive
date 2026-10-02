@@ -8,6 +8,7 @@ import typer
 
 from phabfive.cli.agents import AgentFooterGroup
 from phabfive.cli.completers import complete_policy, complete_repo_status
+from phabfive.cli.dry_run import resolve_dry_run
 from phabfive.cli.output import (
     _get_output_format,
     _setup_output_options,
@@ -431,6 +432,8 @@ def repo_nudge(
         phabfive diffusion repo nudge R5 --commit 7d7fc2c3e002,1b2eccf4a6c9
         phabfive --format=json diffusion repo nudge phabfive
     """
+    dry_run = resolve_dry_run(ctx, dry_run)
+
     # Support both space-separated (R5 R6) and comma-separated (R5,R6)
     repo_ids: list[str] = []
     for repo_arg in repos:
@@ -601,6 +604,8 @@ def repo_create(
     once created - Phorge offers no delete through Conduit or the web UI.
     `--allow-similar` creates it anyway. An exact clash is always refused.
     """
+    dry_run = resolve_dry_run(ctx, dry_run)
+
     from phabfive.cli.editor import confirm_apply, render_changes, resolve_assume_yes
 
     try:
@@ -717,6 +722,8 @@ def repo_edit(
     that differs from another repository only in case or in `.` `-` `_`
     punctuation is refused unless `--allow-similar` is given.
     """
+    dry_run = resolve_dry_run(ctx, dry_run)
+
     from phabfive.cli.editor import confirm_apply, render_changes, resolve_assume_yes
 
     options = [
@@ -1001,6 +1008,8 @@ def uri_create(
     ),
 ) -> None:
     """Create a new URI for a repository."""
+    dry_run = resolve_dry_run(ctx, dry_run)
+
     from phabfive.cli.editor import confirm_apply, render_changes, resolve_assume_yes
 
     if not observe and not mirror:
@@ -1098,6 +1107,8 @@ def edit(
     ),
 ) -> None:
     """Edit a URI for a repository."""
+    dry_run = resolve_dry_run(ctx, dry_run)
+
     from phabfive.cli.editor import confirm_apply, render_changes, resolve_assume_yes
 
     if enable and disable:
