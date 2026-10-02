@@ -46,6 +46,7 @@ class Phabfive:
     _hyperlink_when = "never"
     _output_format = None
     _fallback_format = "yaml"  # Format used when stdout is not a TTY
+    _dry_run = False
     # Maximum line width for rich format (to prevent YAML breaking)
     MAX_LINE_WIDTH = 4096
     # Where instance configuration looked up once - the task statuses - is
@@ -337,6 +338,7 @@ class Phabfive:
         # the retry settings, so that a bad value fails before any work
         # rather than after a batch edit has been planned and confirmed.
         Pacer.from_conf(self.conf)
+        Phabfive._dry_run = bool(self.conf.get("PHABFIVE_DRY_RUN", False))
         self.phab = Conduit(self._client_factory(), RetryPolicy.from_conf(self.conf))
 
         # Every link phabfive hands back is rooted here. That is the endpoint's

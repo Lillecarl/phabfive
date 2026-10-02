@@ -367,6 +367,7 @@ CONFIGURABLES = [
     "PHAB_RETRY",
     "PHAB_BACKOFF_MAX",
     "PHAB_PACE",
+    "PHABFIVE_DRY_RUN",
 ]
 DEFAULTS = {
     "PHAB_TOKEN": "",
@@ -383,6 +384,7 @@ DEFAULTS = {
     "PHAB_RETRY": 3,  # How often a failed Conduit call is tried again
     "PHAB_BACKOFF_MAX": 5,  # The longest wait before a retry, in seconds
     "PHAB_PACE": 0,  # Seconds to keep between the writes of a batch edit
+    "PHABFIVE_DRY_RUN": False,  # Preview writes instead of applying them
 }
 
 # Bumping this orphans every entry written by an older phabfive

@@ -55,6 +55,9 @@ _VALUELESS_GLOBAL_FLAGS = {
     "--install-completion",
     "--show-completion",
     "--skill",
+    "--dry-run",
+    "--no-dry-run",
+    "--execute",
 }
 
 # -v and -q are counted rather than valued, so -v, -vv, -q, -qq take no value
@@ -299,6 +302,18 @@ def main(
         is_eager=True,
         help="Print the agent skill file and exit",
     ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        envvar="PHABFIVE_DRY_RUN",
+        help="Preview changes without applying them",
+    ),
+    no_dry_run: bool = typer.Option(
+        False,
+        "--no-dry-run",
+        "--execute",
+        help="Execute changes (overrides PHABFIVE_DRY_RUN)",
+    ),
 ) -> None:
     """CLI for Phabricator and Phorge - built for humans and AI agents."""
     # Configure logging before anything can log
@@ -312,6 +327,7 @@ def main(
     ctx.obj["format"] = output_format.value if output_format else None
     ctx.obj["ascii"] = ascii_when.value
     ctx.obj["hyperlink"] = hyperlink_when.value
+    ctx.obj["dry_run"] = dry_run and not no_dry_run
 
     # Global options but no command: show what the commands are
     if ctx.invoked_subcommand is None:
