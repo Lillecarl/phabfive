@@ -18,6 +18,7 @@ from phabfive.cli.completers import (
     complete_user_list_filter,
     forget_projects,
 )
+from phabfive.cli.dry_run import resolve_dry_run
 from phabfive.cli.lookups import warn_unknown_project_icons
 from phabfive.cli.output import (
     _echo_no_match_hint,
@@ -537,6 +538,8 @@ def project_create(
         phabfive project create "Humans" --editable-by='#humans' --joinable-by=admin --dry-run
         phabfive project create --with specs/create/platform-project.yaml
     """
+    dry_run = resolve_dry_run(ctx, dry_run)
+
     from phabfive.cli.create_spec import refuse_unspecced_create
     from phabfive.cli.editor import confirm_apply, render_changes, resolve_assume_yes
 
@@ -713,6 +716,8 @@ def project_edit(
         phabfive project edit '#platform' --add-slug=plat --color=green
         phabfive project edit '#humans' --editable-by='#humans' --dry-run
     """
+    dry_run = resolve_dry_run(ctx, dry_run)
+
     from phabfive.cli.editor import confirm_apply, render_changes, resolve_assume_yes
 
     options = [
