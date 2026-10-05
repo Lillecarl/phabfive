@@ -399,6 +399,9 @@ phabfive maniphest edit T123 --visible-to='#infra' --editable-by=admin --dry-run
 phabfive --format=json maniphest edit T123 --status=resolved --dry-run
 ```
 
+`PHAB_DRY_RUN=1` previews every write of a session, and `phabfive --dry-run ...` does the
+same for one command. `--execute` applies one write while the variable is set.
+
 An option that adds or removes several values - `--tag`/`--untag` and
 `--subscribe`/`--unsubscribe` on `maniphest create/edit`, `phabfive edit` and
 `paste create/edit`, the `project` list options - is repeatable and comma-separated:

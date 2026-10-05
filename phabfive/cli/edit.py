@@ -16,6 +16,7 @@ from phabfive.cli.completers import (
     complete_user,
     complete_user_list,
 )
+from phabfive.cli.dry_run import resolve_dry_run
 from phabfive.cli.output import _get_output_format, _setup_output_options
 from phabfive.cli.editor import resolve_assume_yes
 from phabfive.commits import COMMIT_GRAMMAR
@@ -245,6 +246,8 @@ def edit_command(
         phabfive edit T123 --unassign
         phabfive edit T123 --visible-to=public --editable-by='#infra'
     """
+    dry_run = resolve_dry_run(ctx, dry_run)
+
     try:
         force = resolve_assume_yes(yes, force, interactive)
     except ValueError as e:

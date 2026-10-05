@@ -133,6 +133,12 @@
   machine-readable format so that stdout stays empty. With the monogram shortcut the flag
   goes after the text: `phabfive T123 "text" --dry-run`. #577
 
+* **A global `--dry-run` previews every write command.** `phabfive --dry-run ...` and
+  `PHAB_DRY_RUN=1` in the environment act as each command's own `--dry-run`, so a
+  session or a script can preview everything it runs. `--execute` (or `--no-dry-run`)
+  turns the switch off again for one command. A command's own `--dry-run` still
+  previews when the switch is off
+
 ## Bug Fixes
 
 * **An empty `diffusion repo list` or `diffusion uri list` says so on stderr (#395).**

@@ -29,6 +29,7 @@ from phabfive.cli.completers import (
     complete_assignee_filter,
     complete_user_list_filter,
 )
+from phabfive.cli.dry_run import resolve_dry_run
 from phabfive.cli.output import (
     _echo_no_match_hint,
     _exit_with_help,
@@ -269,6 +270,8 @@ def comment(
         phabfive maniphest comment T1 "Done" --dry-run
         phabfive T1 "Quick comment"  # monogram shortcut
     """
+    dry_run = resolve_dry_run(ctx, dry_run)
+
     from phabfive.cli.editor import edit_text
 
     _setup_output_options(ctx)
@@ -460,6 +463,8 @@ def create(
         phabfive maniphest create "Task" --visible-to='#infra' --editable-by=admin
         echo "Description" | phabfive maniphest create "Task" --description=-
     """
+    dry_run = resolve_dry_run(ctx, dry_run)
+
     # A spec is applied as it stands, so every value the spec path cannot
     # honour used to be accepted and then dropped in silence. Refuse it
     # instead, and before anything is constructed or connected: nothing a
@@ -1483,6 +1488,8 @@ def edit(
         phabfive maniphest edit T123 --unassign
         phabfive maniphest edit T123 --visible-to=public --editable-by='#infra'
     """
+    dry_run = resolve_dry_run(ctx, dry_run)
+
     # Greedy monogram parsing: leading args that are task monograms (or
     # comma-separated lists of them) are task IDs; the first non-matching
     # arg is the new title. A title that looks like a monogram must be set
