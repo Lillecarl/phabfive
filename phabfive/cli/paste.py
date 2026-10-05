@@ -36,6 +36,7 @@ from phabfive.exceptions import (
 )
 from phabfive.users import resolve_user_phid, resolve_user_phids
 from phabfive.cli.completers import complete_policy
+from phabfive.cli.dry_run import resolve_dry_run
 from phabfive.cli.editor import resolve_assume_yes
 from phabfive.policy import POLICY_GRAMMAR, validate_policy_value
 from phabfive.options import any_list_value, split_list_option
@@ -361,6 +362,8 @@ def create(
         phabfive paste create "Secret" --content=... --visible-to='#platform'
         phabfive paste create --with specs/create/release-notes-paste.yaml
     """
+    dry_run = resolve_dry_run(ctx, dry_run)
+
     # `--with` is the deprecated spelling of `phabfive apply -f FILE`, and
     # it is the same flag on all three create commands: what a spec creates
     # is decided by the file, so this runs every object type it holds.
@@ -709,6 +712,8 @@ def edit(
         phabfive paste edit P1 --tag=backend --untag=frontend
         phabfive paste edit P1 "Test" --dry-run
     """
+    dry_run = resolve_dry_run(ctx, dry_run)
+
     from phabfive.cli.editor import confirm_text_change, edit_text
 
     try:
