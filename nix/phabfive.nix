@@ -8,6 +8,7 @@
   # deps
   anyconfig,
   appdirs,
+  click,
   inquirerpy,
   jinja2,
   phabricator,
@@ -27,6 +28,7 @@ buildPythonApplication (finalAttrs: {
     # deps
     anyconfig
     appdirs
+    click
     inquirerpy
     jinja2
     phabricator
